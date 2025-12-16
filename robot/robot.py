@@ -1,85 +1,48 @@
+rom random import random
+
 from robot_manager.base import Bot
 from robot_manager.flow import RobotFlow
-from .flow import *
-from .exceptions import *
-
+from .flow import Nodes
 
 class Robot(Bot):
-    """
-    Robot class:
-    ----------------
-    Robot class - Inherits from Bot class.
-    This Framework is design to test the Robot Funcionality
-    """
-
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, disabled=False)
+        # Initialize the base class (Bot)
+        super().__init__(**kwargs)
 
-    @RobotFlow(Nodes.StartNode)
-    def start(self):
-        """
-        start method
-        ======================
-        Start method is the first method to be executed.
-        Use this method to execute the robot's initialization.
-        Example:
-            1. Initialize the robot's variables.
-            2. Clean up the environment.
-            3. Get the robot's data.
-            4. Open Applications
-        """
-        # Transaction data example
-        self.data = [1, 2, 3, 4, 5]
-        self.log.trace("start")
+    @RobotFlow(node=Nodes.StartNode, children='initial_check')
+    def start(self, *args):
+        print("Starting nested conditional workflow")
 
-    @RobotFlow(Nodes.ConditionNode, parents=["process_data"], condition=Conditions.has_data)
-    def get_transaction_data(self, *args):
-        """
-        Get transaction data method
-        ===========================
-        Get transaction data method is the method that gets the data from the source.
-        Use this method to get each transactional item and send it to the next method to be processed.
-        Example usage:
-            1. Get the data from the source.
-            2. Send the data to the next method.
-        """
-        self.log.trace("get_transaction_data")
+    @RobotFlow(node=Nodes.ConditionNode, children={True:"first_condition_true", False:"first_condition_false"}, condition=lambda x: x < 5)
+    def initial_check(self, *args):
+        # The lambda function evaluates and returns a boolean value
+        condition = random.randint(0, 5)
+        print(f"First check evaluation for {condition}")
+        return condition
 
-        return self.data
+    @RobotFlow(node=Nodes.OperationNode, children="secondary_check")
+    def first_condition_true(self, *args):
+        print("Initial condition met, proceeding with first true branch")
 
-    @RobotFlow(Nodes.OnTrue, parents=["get_transaction_data"])
-    def process_data(self, *args):
-        """
-        Process data Method
-        ======================
-        Process data method is the method that processes the data gathered from the previous method.
-        Use this method to process the data.
-        Arguments:
-            1. *args: Receives data from the previous method.
-        Example usage:
-            1. Process the data.
-        """
-        # Get first available item of array
-        item = args[0][0]
+    @RobotFlow(node=Nodes.OperationNode, children="end")
+    def first_condition_false(self, *args):
+        print("Initial Not met, proceeding with first true branch")
 
-        # TODO: Create process
+    @RobotFlow(node=Nodes.ConditionNode, children={True:"second_condition_true", False:"second_condition_false"}, condition=lambda x: x > 5)
+    def secondary_check(self, *args):
+        # Secondary condition check with a lambda function that returns a boolean value
+        condition = random.randint(0, 10)
+        print(f"Second check evaluation for {condition}")
+        return condition
 
-        # Remove Processed Item
-        self.data.pop(0)
-        self.log.trace(f"process_transaction_data for element {item}")
+    @RobotFlow(node=Nodes.OperationNode, children="end")
+    def second_condition_true(self, *args):
+        print("Secondary condition met, executing specific task")
 
-    @RobotFlow(node=Nodes.OnFalse, parents=["get_transaction_data"])
-    def finish_process(self, *args):
-        """
-        Finish the workflow.
-        Saves final changes to the Excel file.
-        Sends output to user
-        """
-        self.log.trace(f"finish_process")
+    @RobotFlow(node=Nodes.OperationNode,  children="end")
+    def second_condition_false(self, *args):
+        print("Secondary condition not met, executing alternative task")
 
-    @RobotFlow(node=Nodes.EndNode, parents=["finish_process"])
+    @RobotFlow(node=Nodes.EndNode)
     def end(self, *args):
-        """
-        Ends the workflow. Closes any open resources like the web browser
-        """
-        self.log.trace(f"end")
+        print("Ending nested conditional workflow")
